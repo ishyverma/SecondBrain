@@ -1,9 +1,11 @@
 import express from "express";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
-import { userModel } from "./db";
+import { contentModel, userModel } from "./db";
 import mongoose from "mongoose";
 import dotenv from "dotenv"
+import { JWT_SECRET } from "./config";
+import { userMiddleware } from "./middleware";
 
 const app = express()
 app.use(express.json())
@@ -36,14 +38,40 @@ app.post("/api/v1/signin", async (req, res) => {
     const { username, password } = req.body
     try {
         const user = await userModel.findOne({ username })
-        
+        if (user) {
+            const token = jwt.sign({ username, id: user._id }, JWT_SECRET)
+            res.json({
+                Token: token
+            })
+        } else {
+            res.status(411).json({
+                ErrorMessage: 'Invalid Credentials'
+            })
+        }
+
     } catch (err) {
         console.log('User Not Found: ', err)
+        res.status(411).json({
+            ErrorMessage: "User Not Exists"
+        })
     }
 })
 
-app.post("/api/v1/content", (req, res) => {
+app.use(userMiddleware)
 
+app.post("/api/v1/content", async (req, res) => {
+    const { title, link } = req.body
+    try {
+        // @ts-ignore
+        const content = await contentModel.create({ title, link, userId: req.userId, tags: []})
+        res.json({
+            Message: 'Content created successfully'
+        })
+    } catch (err) {
+        res.json({
+            ErrorMessage: err
+        })
+    }
 })
 
 app.get("/api/v1/content", (req, res) => {
