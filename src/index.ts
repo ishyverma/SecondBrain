@@ -74,12 +74,39 @@ app.post("/api/v1/content", async (req, res) => {
     }
 })
 
-app.get("/api/v1/content", (req, res) => {
-
+app.get("/api/v1/content", async (req, res) => {
+    // @ts-ignore
+    const userId = req.userId
+    try {
+        const content = await contentModel.find({ userId: userId }).populate("userId", "username")
+        res.send({ content })
+    } catch (err) {
+        res.status(411).json({
+            ErrorMessage: err
+        })
+    }
 })
 
-app.delete("/api/v1/content", (req, res) => {
-
+app.delete("/api/v1/content", async (req, res) => {
+    // @ts-ignore
+    const userId = req.userId
+    const { contentId } = req.body
+    try {
+        const content = await contentModel.deleteOne({ userId, _id: contentId })
+        if ( content.deletedCount ) {
+            res.json({
+                Message: 'Content is deleted'
+            })
+        } else {
+            res.status(411).json({
+                ErrorMessage: "Content is not there"
+            })
+        }
+    } catch (err) {
+        res.status(411).json({
+            ErrorMessage: err
+        })
+    }
 })
 
 app.post("/api/v1/brain/share", (req, res) => {
